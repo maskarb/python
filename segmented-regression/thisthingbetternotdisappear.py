@@ -1,19 +1,19 @@
 import pandas as pd
 import numpy as np
 import os
+import time
 import datetime
-import rpy2.robjects as robjects
-from rpy2.robjects.packages import importr
-ts = robjects.r('ts')
-forecast = importr('strucchange')
-
-cwd = 'C:\\Users\\maska\\OneDrive\\Documents\\MASON'
-folder = '25-May-2018'
-location = cwd + '\\' + folder + '\\'
-
-file_dict = { '{:.1f}_shift_ts-{:d}_all_params.csv'.format(shift/10.0, run_num): 0 for shift in range(1, 11) for run_num in range(0, 10) }
 
 
+def parse_txt_to_csv(number_runs, location):
+    txt_dict = { 'reservoir-shift_{:.1f}-ts-{:d}'.format(shift/10.0, run_num): 0 for shift in range(1, 11) for run_num in range(0, number_runs) }
+    colnames = ['observedInflow', 'storage', 'outflow', 'totalWaterSupply', 'elevation', 'population', 'shiftFactor']
+    for txt_file in txt_dict.keys():
+        txt_dict[txt_file] = pd.read_table(location+txt_file+'.txt', sep=' ', index_col=False, usecols=colnames)
+        txt_dict[txt_file].to_csv(location+txt_file+'.csv', index=False)
+    return txt_dict
+
+'''
 for csvfile in file_dict.keys():
     file_dict[csvfile] = pd.read_csv(location + csvfile)
 
@@ -24,7 +24,7 @@ months = file_dict[filename]['dates']
 storage= file_dict[filename]['storage_asis']
 
 print(filename, months, storage)
-
+'''
 def drought_stage(month):
     return {
         1 : [40, 30, 25],
@@ -56,7 +56,7 @@ def recission(month):
         11: [55,  50, 45],
         12: [55,  50, 45],
     }
-
+'''
 stage1 = [False] * len(file_dict[filename])
 stage2 = [False] * len(file_dict[filename])
 stage3 = [False] * len(file_dict[filename])
@@ -89,3 +89,20 @@ while True:
 
 for key in file_dict.keys():
     file_dict[key].to_csv(path_to_make+'\\'+key+'.csv')
+
+'''
+
+def main():
+    start = time.time()
+
+    cwd = 'C:\\Users\\maska\\OneDrive\\Documents\\MASON'
+    folder = '20-jun-2018'
+    location = cwd + '\\' + folder + '\\'
+    number_runs = 30
+    dict_of_stuff = parse_txt_to_csv(number_runs, location)
+
+    end = time.time()
+    print(end - start)
+
+if __name__ == '__main__':
+    main()
