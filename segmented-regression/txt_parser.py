@@ -12,12 +12,16 @@ import datetime
 
 def parse_txt_to_csv(location, shift_list, number_runs):
     dates = pd.DataFrame({'dates': list(range(1,13))*50})
-    txt_dict = { 'reservoir-shift_{:.1f}-ts-{:d}'.format(shift, run_num): dates for shift in shift_list for run_num in range(0, number_runs) }
-    colnames = ['observedInflow', 'storage', 'outflow', 'totalWaterSupply', 'elevation', 'population', 'shiftFactor']
+    txt_dict = { 'reservoir-shift_{:.1f}-ts-{:d}'.format(shift, run_num): dates 
+                  for shift in shift_list for run_num in range(0, number_runs) }
+    colnames = ['observedInflow', 'storage', 'outflow', 'totalWaterSupply', 'waterSupply',
+                'elevation', 'population', 'shiftFactor', 'inflow', 'deficit']
     for txt_file in txt_dict.keys():
-        txt_dict[txt_file] = pd.concat([dates, pd.read_table(location+txt_file+'.txt', sep=' ', index_col=False, usecols=colnames)],  axis=1)
-        txt_dict[txt_file].to_csv(location+txt_file+'.csv', index=True, index_label='index')
-    return txt_dict
+        print(txt_file)
+        txt_dict[txt_file] = pd.concat([dates, pd.read_table(location+txt_file+'.txt', sep=' ',
+                                         index_col=False, usecols=colnames)],  axis=1)
+        new_loc = "C:\\Users\\maska\\research\\"
+        txt_dict[txt_file].to_csv(new_loc+txt_file+'.csv', index=True, index_label='index')
 
 
 def main():
@@ -32,7 +36,7 @@ def main():
 #    shift_list = [0.1]
 #    number_runs = 1
 
-    dict_of_stuff = parse_txt_to_csv(location, shift_list, number_runs)
+    parse_txt_to_csv(location, shift_list, number_runs)
 
     end = time.time()
     print(end - start)
