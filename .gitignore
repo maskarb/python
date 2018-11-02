@@ -4,3 +4,4 @@ cuda
 multithreading_perhaps
 python-course_eu
 dados.csv*
+/__pycache__
