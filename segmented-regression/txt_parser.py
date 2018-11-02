@@ -28,10 +28,11 @@ def main():
     start = time.time()
 
     cwd = 'C:\\Users\\maska\\OneDrive\\Documents\\MASON'
-    folder = '20-jun-2018'
+    folder = '15-aug-2018'
     location = cwd + '\\' + folder + '\\'
     shift_list = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    number_runs = 30
+    shift_list = [0.7]
+    number_runs = 50
 
 #    shift_list = [0.1]
 #    number_runs = 1
