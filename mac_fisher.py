@@ -116,7 +116,7 @@ def read_csv_no_headers(filename):
 
 
 def fit_data(x, y, df):
-    fit1 = STATS.smooth_spline(x, y, df=df)
+    fit1 = STATS.smooth_spline(x, y, df=df) # pylint: disable=E1101
     y_s = list(fit1[1])
     spline = InterpolatedUnivariateSpline(x, y_s)
     derivative = spline.derivative(n=1)
