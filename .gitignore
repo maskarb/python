@@ -5,3 +5,6 @@ multithreading_perhaps
 python-course_eu
 dados.csv*
 /__pycache__
+FI.csv
+rs*
+/why_wont_this_commit

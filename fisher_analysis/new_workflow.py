@@ -143,12 +143,13 @@ def make_plot(x, y, spline, derivative, breaks, ylimit):
 
 
 def FI_smooth(df):
+    # TODO Figure out this dating nonsense.
     raw_data = read_csv_no_headers('FI.csv')
     start_date = datetime.strptime('2015-01-01', '%Y-%m-%d')
     time_as_date, FI = [], []
     for row in raw_data:
         FI.append(literal_eval(row[-2]))
-        time_as_date.append(start_date + timedelta(months=int(row[-1])))
+     #   time_as_date.append(start_date + timedelta(months=int(row[-1])))
     time = list(range(len(FI)))
     spline, derivative = fit_data(time, FI, df)
     return spline, derivative, FI, time, time_as_date
@@ -167,7 +168,7 @@ def main():
     window_size = 48
     window_increment = 4
     df = 7
-    f_name = 'python/rs1_ts1_bp.csv'
+    f_name = 'rs1_ts1_bp.csv'
     headers, Data = read_csv_headers(f_name)
     var_list = ['storage', ]
     index_list = get_header_index(var_list, headers)
