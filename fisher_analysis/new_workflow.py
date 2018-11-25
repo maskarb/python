@@ -10,7 +10,7 @@ from rpy2.robjects.packages import importr
 from scipy.interpolate import InterpolatedUnivariateSpline
 
 STATS = importr('stats')
-SIGN = lambda a: (float(a) > 0) - (float(a) < 0)
+def sign(a): return (float(a) > 0) - (float(a) < 0)
 
 
 def min_max_perc(val_list, perc):
@@ -126,7 +126,7 @@ def fit_data(x, y, df):
 def find_breaks(x, spline, derivative, perc_range):
     breaks = list()
     for i in range(1, len(derivative)):
-        if SIGN(derivative[i]) < SIGN(derivative[i-1]) and spline[i-1] > perc_range:
+        if sign(derivative[i]) < sign(derivative[i-1]) and spline[i-1] > perc_range:
             breaks.append(x[i])
     return breaks
 
