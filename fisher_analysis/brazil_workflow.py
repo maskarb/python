@@ -136,7 +136,7 @@ def find_breaks(x, spline, derivative, perc_range):
 
 
 def make_plot(x1, y1, x, y, spline, derivative, breaks, ylimit):
-    fig, ax1 = plt.subplots()
+    _, ax1 = plt.subplots()
     ax1.plot(x, y, '.k')
     x_s = np.arange(x[0], x[-1], 0.02)
 
@@ -161,7 +161,7 @@ def make_plot_w_dates(datetimes, y1, x, y, spline, derivative, breaks, ylimit):
     date_x_s = convert_x_to_date(x_s, dates)
     date_breaks = convert_x_to_date(breaks, dates)
 
-    fig, ax1 = plt.subplots()
+    _, ax1 = plt.subplots()
 
     ax1.plot_date(date_x, y, '.k')          # plot Fisher Information
     ax1.plot_date(date_x_s, spline_y, 'r')  # plot smoothing spline
