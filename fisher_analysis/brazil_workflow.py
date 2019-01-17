@@ -1,4 +1,5 @@
 import csv
+import datetime
 from ast import literal_eval
 from datetime import datetime, timedelta
 
@@ -38,10 +39,10 @@ def size_of_state(data_num, window_size):
     return sos
 
 
-def fisher(data_num, Time, w_size, w_incr, sost, f_name):
+def fisher(Numbs, Time, w_size, w_incr, sost, f_name):
     FI_final, k_init = [], []
-    for i in range(0, len(data_num), w_incr):
-        data_win = data_num[i:i+w_size]
+    for i in range(0, len(Numbs), w_incr):
+        data_win = Numbs[i:i+w_size]
         if len(data_win) == w_size:
             _bin = []
             for m in range(w_size):
@@ -149,10 +150,6 @@ def make_plot(x1, y1, x, y, spline, derivative, breaks, ylimit):
     ax2 = ax1.twinx()
     ax2.plot(x1, y1, ':b', linewidth=0.5)
 
-    ax1.set_xlabel("Time (Months)")
-    ax1.set_ylabel("Fisher Information (FI)")
-    ax2.set_ylabel("Storage Volume (1000 acre-ft)")
-
 def make_plot_w_dates(datetimes, y1, x, y, spline, derivative, breaks, ylimit):
     dates = matplotlib.dates.date2num(datetimes)
 
@@ -181,10 +178,12 @@ def make_plot_w_dates(datetimes, y1, x, y, spline, derivative, breaks, ylimit):
     ax1.set_ylabel("Fisher Information (FI)")
     ax2.set_ylabel("Percent Storage Volume (%)")
 
+
 def convert_x_to_date(x, dates):
     start, end, length = dates[0], dates[-1], len(dates)
     date_diff = (end - start) / length
     return np.array(x) * date_diff + start
+
 
 
 def FI_smooth(df_FI, df, w_size, w_incr):
@@ -203,27 +202,27 @@ def get_variable_index(vars: list, headers: list):
 
 
 def main():
-    file_no_ext = 'fisher_analysis/res-s-0.4-0'
-    filename = file_no_ext.split('-')
+    file_no_ext = 'fisher_analysis/cantar2'
+    filename = file_no_ext.split('/')
     f_name = file_no_ext + '.csv'
 
     w_size = 48
     w_incr = 4
     df = 7
-    data_num, Time = [], []
+    data_num, Time, Date = [], [], []
 
     headers, Data = read_csv_headers(f_name)
-    var_list = ['storage', ]
+    var_list = ['volume_percent', ]
     index_list = get_variable_index(var_list, headers)
 
     for i, row in enumerate(Data):
-        data_num.append([literal_eval(row[i])/1000 for i in index_list])
+        data_num.append([literal_eval(row[i]) for i in index_list])
         Time.append(i)
 
-#    time_list = ['index']
-#    time_index = get_variable_index(time_list, headers)
-#    for row in Data:
-#        Time.append(literal_eval(row[time_index[0]]))
+    date = ['date']
+    date_index = get_variable_index(date, headers)
+    for row in Data:
+        Date.append(datetime.strptime(row[date_index[0]], '%Y-%m-%d'))
 
     sost = size_of_state(data_num, w_size)
     df_FI = fisher(data_num, Time, w_size, w_incr, sost, file_no_ext)
@@ -233,9 +232,9 @@ def main():
     __, __, perc_range = min_max_perc(FI, 0.35)
     xs = np.arange(time_index[0], time_index[-1], 0.02)
     breaks = find_breaks(list(xs), list(spline(xs)), list(derivative(xs)), perc_range)
-    make_plot(Time, data_num, time_index, FI, spline, derivative, breaks, perc_range)
+    make_plot_w_dates(Date, data_num, time_index, FI, spline, derivative, breaks, perc_range)
 
-    plt.title(f'Falls Lake Reservoir Model\nShift: {filename[2]}, Run: {filename[3]}')
+    plt.title(filename[1])
     _file = f'{file_no_ext}_overlay.png'
     plt.savefig(_file)
     plt.gcf().clear() # clear old plot
