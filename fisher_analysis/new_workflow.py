@@ -37,7 +37,7 @@ def size_of_state(data_num, window_size):
     return sos
 
 
-def fisher(data_num, Time, w_size, w_incr, sost):
+def fisher(data_num, Time, w_size, w_incr, sost, f_name):
     FI_final, k_init = [], []
     for i in range(0, len(data_num), w_incr):
         data_win = data_num[i:i+w_size]
@@ -95,20 +95,22 @@ def fisher(data_num, Time, w_size, w_incr, sost):
             )
         FI_final[i].append(Time[(i*w_incr+w_size)-1])
     df_FI = pd.DataFrame(FI_final)
-    df_FI.to_csv("FI.csv", index=False, header=False)
+    df_FI.to_csv(f"{f_name}_FI.csv", index=False, header=False)
     print("Fisher Done. CSV")
-    return
+    return FI_final
 
 
 def read_csv_headers(filename):
+    '''Read a csv file, return headers and data in lists'''
     with open(filename, 'r') as out:
         data_csv_reader = csv.reader(out)
-        headers = next(data_csv_reader, None)  # skip the headers
+        headers = next(data_csv_reader, None)
         raw_data = [row for row in data_csv_reader]
     return headers, raw_data
 
 
 def read_csv_no_headers(filename):
+    '''Read a csv file without headers, return the data in list'''
     with open(filename, 'r') as out:
         data_csv_reader = csv.reader(out)
         raw_data = [row for row in data_csv_reader]
@@ -131,66 +133,74 @@ def find_breaks(x, spline, derivative, perc_range):
     return breaks
 
 
-def make_plot(x, y, spline, derivative, breaks, ylimit):
-    plt.plot(x, y, '.k')
-    x_s = np.arange(0, len(y), 0.02)
-    plt.plot(x_s, spline(x_s), 'b')
-    plt.plot(x_s, derivative(x_s), 'g')
+def make_plot(x1, y1, x, y, spline, derivative, breaks, ylimit):
+    fig, ax1 = plt.subplots()
+    ax1.plot(x, y, '.k')
+    x_s = np.arange(x[0], x[-1], 0.02)
+    
+    ax1.plot(x_s, spline(x_s), 'r')
+    ax1.plot(x_s, derivative(x_s), 'g')
     for i in breaks:
-        plt.axvline(x=i, linestyle='--')
-    plt.axhline(y=ylimit, linestyle=':', linewidth=0.35)
-    plt.legend(['Fisher Information', 'Smoothing Spline', 'Derivative', 'Breakpoints'])
+        ax1.axvline(x=i, linestyle='--')
+    ax1.axhline(y=ylimit, linestyle=':', linewidth=0.35)
+    ax1.legend(['Fisher Information', 'Smoothing Spline', 'Derivative', 'Breakpoints'])
+
+    ax2 = ax1.twinx()
+    ax2.plot(x1, y1, ':b', linewidth=0.5)
 
 
-def FI_smooth(df):
+def FI_smooth(df_FI, df, w_size, w_incr):
     # TODO Figure out this dating nonsense.
     raw_data = read_csv_no_headers('FI.csv')
-    start_date = datetime.strptime('2015-01-01', '%Y-%m-%d')
-    time_as_date, FI = [], []
-    for row in raw_data:
+    time_as_date, FI = [w_size], []
+    for i, row in enumerate(raw_data):
         FI.append(literal_eval(row[-2]))
-     #   time_as_date.append(start_date + timedelta(months=int(row[-1])))
+        time_as_date.append(time_as_date[i] + w_incr)
     time = list(range(len(FI)))
-    spline, derivative = fit_data(time, FI, df)
-    return spline, derivative, FI, time, time_as_date
+    spline, derivative = fit_data(time_as_date[:-1], FI, df)
+    return spline, derivative, FI, time, time_as_date[:-1]
 
 
 
-def get_header_index(col_name_list: list, headers: list):
-    index_list = []
-    for col_name in col_name_list:
-        gen = (i for i, e in enumerate(headers) if e == col_name)
-        index_list.append(next(gen))
-    return index_list
+def get_variable_index(vars: list, headers: list):
+    return [headers.index(var) for var in vars]
+
 
 
 def main():
-    window_size = 48
-    window_increment = 4
+    file_no_ext = 'fisher_analysis/res-s-0.4-0'
+    f_name = file_no_ext + '.csv'
+
+    w_size = 48
+    w_incr = 4
     df = 7
-    f_name = 'rs1_ts1_bp.csv'
+    data_num, Time = [], []
+
     headers, Data = read_csv_headers(f_name)
     var_list = ['storage', ]
-    index_list = get_header_index(var_list, headers)
-    time_list = ['index']
-    time_index = get_header_index(time_list, headers)
-    data_num, Time = [], []
-    for row in Data:
-        Time.append(literal_eval(row[time_index[0]]))
-    for row in Data:
-        data_num.append([literal_eval(row[i]) for i in index_list])
-    sost = size_of_state(data_num, window_size)
-    fisher(data_num, Time, window_size, window_increment, sost)
-    spline, derivative, FI, time, time_as_date = FI_smooth(df)
+    index_list = get_variable_index(var_list, headers)
+
+    for i, row in enumerate(Data):
+        data_num.append([literal_eval(row[i])/1000 for i in index_list])
+        Time.append(i)
+
+#    time_list = ['index']
+#    time_index = get_variable_index(time_list, headers)
+#    for row in Data:
+#        Time.append(literal_eval(row[time_index[0]]))
+
+    sost = size_of_state(data_num, w_size)
+    df_FI = fisher(data_num, Time, w_size, w_incr, sost, file_no_ext)
+    spline, derivative, FI, time, time_as_date = FI_smooth(df_FI, df, w_size, w_incr)
 
 
     __, __, perc_range = min_max_perc(FI, 0.35)
-    xs = np.arange(0, len(time), 0.02)
+    xs = np.arange(time_as_date[0], time_as_date[-1], 0.02)
     breaks = find_breaks(list(xs), list(spline(xs)), list(derivative(xs)), perc_range)
-    make_plot(time_as_date, FI, spline, derivative, breaks, perc_range)
+    make_plot(Time, data_num, time_as_date, FI, spline, derivative, breaks, perc_range)
 
-    plt.title('DF = %.2f' % df)
-    _file = 'rs1_ts1_bp_df_%s.png' % df
+    plt.title(f'DF = {df:.2f}')
+    _file = f'{file_no_ext}_df_{df}.png'
     plt.savefig(_file)
     plt.gcf().clear() # clear old plot
 
