@@ -135,19 +135,26 @@ def find_breaks(x, spline, derivative, perc_range):
 
 
 def make_plot(x1, y1, x, y, spline, derivative, breaks, ylimit):
-    _, ax1 = plt.subplots()
-    ax1.plot(x, y, '.k')
     x_s = np.arange(x[0], x[-1], 0.02)
+    y_spline, y_derive = find_spline_deriv(x_s, spline, derivative)
 
-    ax1.plot(x_s, spline(x_s), 'r')
-    ax1.plot(x_s, derivative(x_s), 'g')
-    for i in breaks:
-        ax1.axvline(x=i, linestyle='--')
-    ax1.axhline(y=ylimit, linestyle=':', linewidth=0.35)
-    ax1.legend(['Fisher Information', 'Smoothing Spline', 'Derivative', 'Breakpoints'])
-
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
     ax2 = ax1.twinx()
-    ax2.plot(x1, y1, ':b', linewidth=0.5)
+    ax2.set_ylim(0, 220)
+
+    ln1 = ax2.plot(x1, y1, 'b', linewidth=0.5, alpha=0.5, label='Storage')
+    ln2 = ax1.plot(x, y, '.k', markersize=2, label='Fisher Information')
+    ln3 = ax1.plot(x_s, y_spline, 'r', label='Smoothing Spline')
+    ln4 = []
+    for i in breaks:
+        ln4.append(ax1.axvline(x=i, color='k', linestyle='-.', linewidth=0.5, label='Breakpoints'))
+    # ln5 = ax1.plot(x_s, y_derive, 'g', label='Derivative')
+    ln6 = ax1.axhline(y=ylimit, linestyle=':', linewidth=0.35, label='Threshold')
+
+    lns = ln1 + ln2 + ln3 + [ln4[0]]
+    labs = [l.get_label() for l in lns]
+    ax1.legend(lns, labs)
 
     ax1.set_xlabel("Time (Months)")
     ax1.set_ylabel("Fisher Information (FI)")
@@ -181,6 +188,11 @@ def make_plot_w_dates(datetimes, y1, x, y, spline, derivative, breaks, ylimit):
     ax1.set_ylabel("Fisher Information (FI)")
     ax2.set_ylabel("Percent Storage Volume (%)")
 
+def find_spline_deriv(x, spline, derivative):
+    y_spline = spline(x)
+    y_derive = derivative(x)
+    return y_spline, y_derive
+
 def convert_x_to_date(x, dates):
     start, end, length = dates[0], dates[-1], len(dates)
     date_diff = (end - start) / length
@@ -203,7 +215,7 @@ def get_variable_index(vars: list, headers: list):
 
 
 def main():
-    file_no_ext = 'fisher_analysis/res-s-0.4-0'
+    file_no_ext = 'fisher_analysis/historical_storage'
     filename = file_no_ext.split('-')
     f_name = file_no_ext + '.csv'
 
@@ -235,10 +247,11 @@ def main():
     breaks = find_breaks(list(xs), list(spline(xs)), list(derivative(xs)), perc_range)
     make_plot(Time, data_num, time_index, FI, spline, derivative, breaks, perc_range)
 
-    plt.title(f'Falls Lake Reservoir Model\nShift: {filename[2]}, Run: {filename[3]}')
+    # plt.title(f'Falls Lake Reservoir Model\nShift: {filename[2]}, Run: {filename[3]}')
+    plt.title(f'Falls Lake Historical Data')
     _file = f'{file_no_ext}_overlay.png'
-    plt.savefig(_file)
-    plt.gcf().clear() # clear old plot
+    plt.savefig(_file, dpi=200)
+    plt.close('all') # remove plot from memory
 
 
 
