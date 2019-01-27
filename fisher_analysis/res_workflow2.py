@@ -119,9 +119,9 @@ def read_csv_no_headers(filename):
 
 
 def fit_data(x, y, df):
-    fit1 = STATS.smooth_spline(x, y, df=df) # pylint: disable=E1101
+    fit1 = STATS.smooth_spline(x[:106], y[:106], df=df) # pylint: disable=E1101
     y_s = list(fit1[1])
-    spline = InterpolatedUnivariateSpline(x, y_s)
+    spline = InterpolatedUnivariateSpline(x[:106], y_s)
     derivative = spline.derivative(n=1)
     return spline, derivative
 
@@ -140,8 +140,9 @@ def make_plot(x1, y1, x, y, spline, derivative, breaks, ylimit):
 
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
+    ax1.set_ylim(0, 8)
     ax2 = ax1.twinx()
-    ax2.set_ylim(0, 220)
+    ax2.set_ylim(0, 350)
 
     ln1 = ax2.plot(x1, y1, 'b', linewidth=0.5, alpha=0.5, label='Storage')
     ln2 = ax1.plot(x, y, '.k', markersize=2, label='Fisher Information')
@@ -205,7 +206,7 @@ def FI_smooth(df_FI, df, w_size, w_incr):
         FI.append(row[-2])
         time_index.append(time_index[i] + w_incr)
     spline, derivative = fit_data(time_index[:-1], FI, df)
-    return spline, derivative, FI, time_index[:-1]
+    return spline, derivative, FI[:106], time_index[:106]
 
 
 
@@ -215,7 +216,7 @@ def get_variable_index(vars: list, headers: list):
 
 
 def main():
-    file_no_ext = 'fisher_analysis/historical_storage'
+    file_no_ext = 'fisher_analysis/res-s-0.4-0'
     filename = file_no_ext.split('-')
     f_name = file_no_ext + '.csv'
 
@@ -247,9 +248,8 @@ def main():
     breaks = find_breaks(list(xs), list(spline(xs)), list(derivative(xs)), perc_range)
     make_plot(Time, data_num, time_index, FI, spline, derivative, breaks, perc_range)
 
-    # plt.title(f'Falls Lake Reservoir Model\nShift: {filename[2]}, Run: {filename[3]}')
-    plt.title(f'Falls Lake Historical Data')
-    _file = f'{file_no_ext}_overlay.png'
+    plt.title(f'Falls Lake Reservoir Model\nShift: {filename[2]}, Run: {filename[3]}')
+    _file = f'{file_no_ext}_2_overlay.png'
     plt.savefig(_file, dpi=200)
     plt.close('all') # remove plot from memory
 
