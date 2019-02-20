@@ -97,7 +97,7 @@ def fisher(Numbs, Time, w_size, w_incr, sost, f_name):
             )
         FI_final[i].append(Time[(i*w_incr+w_size)-1])
     df_FI = pd.DataFrame(FI_final)
-    df_FI.to_csv(f"fisher_analysis/brazil_fi/{f_name}_{w_size}_{w_incr}_FI.csv", index=False, header=False)
+    df_FI.to_csv(f"{f_name}_FI.csv", index=False, header=False)
     print("Fisher Done. CSV")
     return FI_final
 
@@ -186,9 +186,13 @@ def convert_x_to_date(x, dates):
 
 
 
-def FI_smooth(time_index, FI, df):
-    spline, derivative = fit_data(time_index, FI, df)
-    return spline, derivative
+def FI_smooth(df_FI, df, w_size, w_incr):
+    time_index, FI = [w_size], []
+    for i, row in enumerate(df_FI):
+        FI.append(row[-2])
+        time_index.append(time_index[i] + w_incr)
+    spline, derivative = fit_data(time_index[:-1], FI, df)
+    return spline, derivative, FI, time_index[:-1]
 
 
 
@@ -205,8 +209,8 @@ def main():
     w_size = 48
     w_incr = 4
     df = 7
+    data_num, Time, Date = [], [], []
 
-    data_num, Time, Date = [], [], []   
     headers, Data = read_csv_headers(f_name)
     var_list = ['volume_percent', ]
     index_list = get_variable_index(var_list, headers)
@@ -220,32 +224,20 @@ def main():
     for row in Data:
         Date.append(datetime.strptime(row[date_index[0]], '%Y-%m-%d'))
 
-    for w_size in range(12, 60, 6):
-        for w_incr in range(3, 7):
-
-            sost = size_of_state(data_num, w_size)
-            df_FI = fisher(data_num, Time, w_size, w_incr, sost, filename[1])
-
-            time_index, FI = [w_size], []
-            for i, row in enumerate(df_FI):
-                FI.append(row[-2])
-                time_index.append(time_index[i] + w_incr)
-            time_index = time_index[:-1]
-
-            for i in range(5, len(time_index)):
-                print(i)
-                spline, derivative = FI_smooth(time_index[:i], FI[:i], df)
+    sost = size_of_state(data_num, w_size)
+    df_FI = fisher(data_num, Time, w_size, w_incr, sost, file_no_ext)
+    spline, derivative, FI, time_index = FI_smooth(df_FI, df, w_size, w_incr)
 
 
-                __, __, perc_range = min_max_perc(FI, 0.35)
-                xs = np.arange(time_index[0], time_index[i], 0.02)
-                breaks = find_breaks(list(xs), list(spline(xs)), list(derivative(xs)), perc_range)
-                make_plot_w_dates(Date, data_num, time_index[:i], FI[:i], spline, derivative, breaks, perc_range)
+    __, __, perc_range = min_max_perc(FI, 0.35)
+    xs = np.arange(time_index[0], time_index[-1], 0.02)
+    breaks = find_breaks(list(xs), list(spline(xs)), list(derivative(xs)), perc_range)
+    make_plot_w_dates(Date, data_num, time_index, FI, spline, derivative, breaks, perc_range)
 
-                plt.title(filename[1] + '_' + str(i))
-                _file = f'fisher_analysis/brazil_smooth/{filename[1]}_{w_size}_{w_incr}_{i}_overlay.png'
-                plt.savefig(_file)
-                plt.close('all') # remove plot from memory
+    plt.title(filename[1])
+    _file = f'{file_no_ext}_overlay.png'
+    plt.savefig(_file)
+    plt.gcf().clear() # clear old plot
 
 
 

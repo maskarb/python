@@ -1,5 +1,5 @@
 import csv
-import datetime
+import os
 from ast import literal_eval
 from datetime import datetime, timedelta
 
@@ -39,10 +39,10 @@ def size_of_state(data_num, window_size):
     return sos
 
 
-def fisher(Numbs, Time, w_size, w_incr, sost, f_name):
+def fisher(data_num, Time, w_size, w_incr, sost, f_name):
     FI_final, k_init = [], []
-    for i in range(0, len(Numbs), w_incr):
-        data_win = Numbs[i:i+w_size]
+    for i in range(0, len(data_num), w_incr):
+        data_win = data_num[i:i+w_size]
         if len(data_win) == w_size:
             _bin = []
             for m in range(w_size):
@@ -97,7 +97,7 @@ def fisher(Numbs, Time, w_size, w_incr, sost, f_name):
             )
         FI_final[i].append(Time[(i*w_incr+w_size)-1])
     df_FI = pd.DataFrame(FI_final)
-    df_FI.to_csv(f"fisher_analysis/brazil_fi/{f_name}_{w_size}_{w_incr}_FI.csv", index=False, header=False)
+    df_FI.to_csv(f"{f_name}_FI.csv", index=False, header=False)
     print("Fisher Done. CSV")
     return FI_final
 
@@ -137,18 +137,23 @@ def find_breaks(x, spline, derivative, perc_range):
 
 def make_plot(x1, y1, x, y, spline, derivative, breaks, ylimit):
     _, ax1 = plt.subplots()
-    ax1.plot(x, y, '.k')
+    ax1.plot(x, y, '.k', markersize=5)
     x_s = np.arange(x[0], x[-1], 0.02)
 
     ax1.plot(x_s, spline(x_s), 'r')
     ax1.plot(x_s, derivative(x_s), 'g')
     for i in breaks:
-        ax1.axvline(x=i, linestyle='--')
+        ax1.axvline(x=i, color='k', linestyle='-.', linewidth=0.5)
     ax1.axhline(y=ylimit, linestyle=':', linewidth=0.35)
     ax1.legend(['Fisher Information', 'Smoothing Spline', 'Derivative', 'Breakpoints'])
 
     ax2 = ax1.twinx()
-    ax2.plot(x1, y1, ':b', linewidth=0.5)
+    ax2.plot(x1, [y[0] for y in y1], 'b', linewidth=0.5, alpha=0.5)
+    ax2.set_ylim(0, 220)
+
+    ax1.set_xlabel("Time (Months)")
+    ax1.set_ylabel("Fisher Information (FI)")
+    ax2.set_ylabel("Storage Volume (1000 acre-ft)")
 
 def make_plot_w_dates(datetimes, y1, x, y, spline, derivative, breaks, ylimit):
     dates = matplotlib.dates.date2num(datetimes)
@@ -168,16 +173,20 @@ def make_plot_w_dates(datetimes, y1, x, y, spline, derivative, breaks, ylimit):
     ax1.plot_date(date_x_s, deriva_y, 'g')  # plot derivative
 
     ax2 = ax1.twinx()
-    ax2.plot_date(dates, y1, ':b', linewidth=0.5)   # plot FI variable
+    ax2.plot_date(dates, y1, '-.b', linewidth=0.5)   # plot FI variable
 
     for i in date_breaks:                   # add the breakpoints to plot
-        ax1.axvline(x=i, linestyle='--')
+        ax1.axvline(x=i, linestyle='--', linewidth=0.5)
     ax1.axhline(y=ylimit, linestyle=':', linewidth=0.35)
     ax1.legend(['Fisher Information', 'Smoothing Spline', 'Derivative', 'Breakpoints'])
     ax1.set_xlabel("Time (Year)")
     ax1.set_ylabel("Fisher Information (FI)")
     ax2.set_ylabel("Percent Storage Volume (%)")
 
+def find_spline_deriv(x, spline, derivative):
+    y_spline = spline(x)
+    y_derive = derivative(x)
+    return y_spline, y_derive
 
 def convert_x_to_date(x, dates):
     start, end, length = dates[0], dates[-1], len(dates)
@@ -185,68 +194,67 @@ def convert_x_to_date(x, dates):
     return np.array(x) * date_diff + start
 
 
-
-def FI_smooth(time_index, FI, df):
-    spline, derivative = fit_data(time_index, FI, df)
-    return spline, derivative
+def FI_smooth(df_FI, df, w_size, w_incr):
+    time_index, FI = [w_size], []
+    for i, row in enumerate(df_FI):
+        FI.append(row[-2])
+        time_index.append(time_index[i] + w_incr)
+    spline, derivative = fit_data(time_index[:-1], FI, df)
+    return spline, derivative, FI, time_index[:-1]
 
 
 
 def get_variable_index(vars: list, headers: list):
     return [headers.index(var) for var in vars]
 
+def list_csv_files(search_dir):
+    """This function accepts a string representing the path to a directory 
+    that will be searched for files with the extension ".csv". This function 
+    will return a list of strings representing all of the file names in the 
+    specified directory that end with the ".csv" extension. If the specified 
+    directory does not contain any .csv files, the function will return an 
+    empty list."""
+    fnames = os.listdir(search_dir)
+    return [fname[:-4] for fname in fnames if fname.endswith('.csv') and not fname.endswith('FI.csv')]
 
 
-def main():
-    file_no_ext = 'fisher_analysis/cantar2'
-    filename = file_no_ext.split('/')
+
+def main_sequence(file_no_ext, w_size, w_incr, df):
+    fname_split = file_no_ext.split('-')
     f_name = file_no_ext + '.csv'
 
-    w_size = 48
-    w_incr = 4
-    df = 7
+    data_num, Time = [], []
 
-    data_num, Time, Date = [], [], []   
     headers, Data = read_csv_headers(f_name)
-    var_list = ['volume_percent', ]
+    var_list = ['storage', 'outflow',]
     index_list = get_variable_index(var_list, headers)
 
     for i, row in enumerate(Data):
-        data_num.append([literal_eval(row[i]) for i in index_list])
+        data_num.append([literal_eval(row[i])/1000 for i in index_list])
         Time.append(i)
 
-    date = ['date']
-    date_index = get_variable_index(date, headers)
-    for row in Data:
-        Date.append(datetime.strptime(row[date_index[0]], '%Y-%m-%d'))
+    sost = size_of_state(data_num, w_size)
+    df_FI = fisher(data_num, Time, w_size, w_incr, sost, file_no_ext)
+    spline, derivative, FI, time_index = FI_smooth(df_FI, df, w_size, w_incr)
 
-    for w_size in range(12, 60, 6):
-        for w_incr in range(3, 7):
+    __, __, perc_range = min_max_perc(FI, 0.35)
+    xs = np.arange(time_index[0], time_index[-1], 0.02)
+    breaks = find_breaks(list(xs), list(spline(xs)), list(derivative(xs)), perc_range)
+    make_plot(Time, data_num, time_index, FI, spline, derivative, breaks, perc_range)
 
-            sost = size_of_state(data_num, w_size)
-            df_FI = fisher(data_num, Time, w_size, w_incr, sost, filename[1])
+    plt.title(f'Falls Lake Reservoir Model\n'
+            f'Mgmt Scenario: {fname_split[2]}, Shift: {fname_split[4]}, Run: {fname_split[5]}')
+    _file = f'{file_no_ext}_overlay.png'
+    plt.savefig(_file, dpi=200)
+    plt.close('all') # remove plot from memory
 
-            time_index, FI = [w_size], []
-            for i, row in enumerate(df_FI):
-                FI.append(row[-2])
-                time_index.append(time_index[i] + w_incr)
-            time_index = time_index[:-1]
+def main():
+    file_list = list_csv_files('./')
+    for fname in file_list:
+        if int(fname.split('-')[4].split('.')[1]) >= 0:
+            main_sequence(fname, 48, 4, 7)
 
-            for i in range(5, len(time_index)):
-                print(i)
-                spline, derivative = FI_smooth(time_index[:i], FI[:i], df)
-
-
-                __, __, perc_range = min_max_perc(FI, 0.35)
-                xs = np.arange(time_index[0], time_index[i], 0.02)
-                breaks = find_breaks(list(xs), list(spline(xs)), list(derivative(xs)), perc_range)
-                make_plot_w_dates(Date, data_num, time_index[:i], FI[:i], spline, derivative, breaks, perc_range)
-
-                plt.title(filename[1] + '_' + str(i))
-                _file = f'fisher_analysis/brazil_smooth/{filename[1]}_{w_size}_{w_incr}_{i}_overlay.png'
-                plt.savefig(_file)
-                plt.close('all') # remove plot from memory
-
+    # main_sequence('res-mgmt-0-s-0.2-1', 48, 4, 7)
 
 
 if __name__ == '__main__':

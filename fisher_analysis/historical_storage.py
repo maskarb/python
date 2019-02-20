@@ -15,13 +15,18 @@ def get_variable_index(vars: list, headers: list):
 
 def main():
     headers, raw_data = read_csv_headers('fisher_analysis/historical_falls_lake.csv')
-    ind = get_variable_index(['endElev'], headers)
-    storage = [['storage']]
+    ind = get_variable_index(['year', 'mo', 'endElev', 'inflow', 'outflow', 'supply', 'precip'], headers)
+    storage = [['year', 'mo', 'storage', 'inflow', 'outflow', 'supply', 'precip']]
     for row in raw_data:
-        elevation = float(row[ind[0]])
-        storage.append([els_stor[elevation]])
+        temp = []
+        for i in ind[0:2]:
+            temp.append(int(row[i]))
+        temp.append(els_stor[float(row[ind[2]])])
+        for i in ind[3:]:
+            temp.append( float(row[i]) )
+        storage.append(temp)
 
-    with open('historical_storage.csv', 'w', newline='') as fout:
+    with open('fisher_analysis/historical_storage.csv', 'w', newline='') as fout:
         writer = csv.writer(fout)
         writer.writerows(storage)
 
