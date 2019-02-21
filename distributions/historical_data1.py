@@ -272,7 +272,7 @@ evaps = [eJan, eFeb, eMar, eApr, eMay, eJun, eJul, eAug, eSep, eOct, eNov, eDec]
 
 import math
 import numpy as np
-import powerlaw as pl
+
 from scipy.stats import chisquare
 from scipy.stats import kstest
 
