@@ -56,47 +56,34 @@ def l_2(lis):
     )
 
 #%%
-x = [
-    357,
-    221,
-    -4,
-    -52,
-    103,
-    48,
-    723,
-    195,
-    62,
-    325,
-    20,
-    55,
-    1935,
-    230,
-    371,
-    114,
-    110,
-    281,
-    332,
-    -66,
-    973,
-    67,
-    141,
-    1259,
-    47,
-    81,
-    638,
-    130,
-    -19,
-    25,
-    1348,
-]
-#%%
-loc, scale, shape = lm.lmom_ratios(x, nmom=3)
+x = (
+ 816, 1884, 1039,  340, 1919,  784,  340, 1310, 2084, 1174,
+1868,  784,  843, 1682, 1151, 3006, 1598, 1127,  160,  568,
+ 658,  240,  857,  368, 1082,  101,  736, 1546,  110,  155,
+ 854,
+)
 
-from scipy.stats import pearson3
+y = (
+2394, 2558, 2497,  453, 1908,  607, 2218, 2029,  347,  575,
+ 792, 1213, 1406, 1341, 1533, 3393,  480, 1579,  473,  210,
+2131,  961,  636,  343,  586,  221,  298, 2200,  237,  275,
+ 980,
+)
+
+import matplotlib.pyplot as plt
+
+plt.plot(x, y, '.')
+#%%
+l1, l2, l3, l4 = lm.lmom_ratios(x, nmom=4)
+t3 = l3/l2
+t4 = l4/l2
+
+#%%
+from scipy.stats import pearson3, kappa4
 import matplotlib.pyplot as plt
 import numpy as np
 
-p = pearson3(loc=loc, skew=shape, scale=scale)
+p = kappa4(h=l4, loc=l1, k=l3, scale=l2)
 
 x = sorted(x)
 vals1 = np.linspace(0, 1, 31)
@@ -104,3 +91,15 @@ vals = np.linspace(0, 1, 1000)
 ys = p.ppf(vals)
 plt.plot(vals, ys, vals1, x)
 plt.show()
+
+#%% GEV
+z = 2/(3 + t3) - math.log(2)/math.log(3)
+k = 7.8590*z + 2.9554*math.pow(z, 2)
+alpha = l2*k / (1 - math.pow(2, -k)) * math.gamma(1+k)
+eta = l1 + alpha * (math.gamma(1+k) - 1)/k
+
+
+#%% GLO
+k = -t3
+alpha = l2/math.gamma(1+k)*math.gamma(1-k)
+eta = l1 + (l2 - alpha)/k

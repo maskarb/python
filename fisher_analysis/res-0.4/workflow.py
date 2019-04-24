@@ -146,10 +146,11 @@ def make_plot(x1, y1, x, y, spline, derivative, breaks, ylimit):
         ax1.axvline(x=i, color='k', linestyle='-.', linewidth=0.5)
     ax1.axhline(y=ylimit, linestyle=':', linewidth=0.35)
     ax1.legend(['Fisher Information', 'Smoothing Spline', 'Derivative', 'Breakpoints'])
+    ax1.set_ylim(0, 8)
 
     ax2 = ax1.twinx()
     ax2.plot(x1, [y[0] for y in y1], 'b', linewidth=0.5, alpha=0.5)
-    ax2.set_ylim(0, 220)
+    ax2.set_ylim(0, 300)
 
     ax1.set_xlabel("Time (Months)")
     ax1.set_ylabel("Fisher Information (FI)")
@@ -226,7 +227,7 @@ def main_sequence(file_no_ext, w_size, w_incr, df):
     data_num, Time = [], []
 
     headers, Data = read_csv_headers(f_name)
-    var_list = ['storage', 'outflow',]
+    var_list = ['storage', 'deficit',]
     index_list = get_variable_index(var_list, headers)
 
     for i, row in enumerate(Data):
@@ -250,9 +251,12 @@ def main_sequence(file_no_ext, w_size, w_incr, df):
 
 def main():
     file_list = list_csv_files('./')
+    count = 0
     for fname in file_list:
         if int(fname.split('-')[4].split('.')[1]) >= 0:
-            main_sequence(fname, 48, 4, 7)
+            print(count)
+            main_sequence(fname, 48, 4, 12)
+            count += 1
 
     # main_sequence('res-mgmt-0-s-0.2-1', 48, 4, 7)
 

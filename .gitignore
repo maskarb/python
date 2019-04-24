@@ -12,3 +12,8 @@ hs_err*
 /__pycache__
 *.pyc
 *.png
+res-*/
+*/res-*/
+fisher_analysis/res-*/
+*/.vscode/
+*/__pycache__/
