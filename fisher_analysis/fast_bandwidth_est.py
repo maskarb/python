@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 from FastUnivariateDensityDerivative import UnivariateDensityDerivative as FUDD
 
-from brazil_percent import ral
+from brazil_percent import ral as inflow
 
 # N - number of source points
 # X - 1 x N matrix of N source points
@@ -30,13 +30,14 @@ def fast_h_fun(h, N, X, c1, c2, eps):
     return h - c1 * phi4 ** (-1 / 5)
 
 
-eps = 10 ** -6
+eps = 10 ** -2
 
 dist = random.gauss
-#N = 600
-#X = [dist(0, 1) for _ in range(N)]
+uni = random.uniform
+N = 6000
+X = [0.75*dist(0.3, 0.2) + 0.25*uni(-0.3, 0.2) for _ in range(6000)]
 
-X = ral
+#X = inflow
 N = len(X)
 print("x created")
 
@@ -85,7 +86,14 @@ h = float(h.x) / scale
 
 print(h)
 
-D0 = FUDD(N, N, X_shifted_scale, X_shifted_scale, h, 0, eps)
+x_sort = sorted(X)
+kernel = gk(x_sort, bw_method='silverman')
+points = np.linspace(min(x_sort), max(x_sort), 1000)
+fit = kernel(points)
+
+plt.plot(points, fit, 'k')
+
+D0 = FUDD(N, N, x_sort, x_sort, h, 0, eps)
 D0.evaluate()
-plt.scatter(X, D0.pD)
+plt.plot(x_sort, D0.pD, 'r')
 plt.show()
