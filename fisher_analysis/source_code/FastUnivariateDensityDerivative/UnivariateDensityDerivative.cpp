@@ -28,7 +28,7 @@
 
 #include "UnivariateDensityDerivative.h"
 #include <math.h>
-// #include <mex.h>
+#include <mex.h>
 #define  min(a,b) (((a)<(b))?(a):(b)) 
 #define  max(a,b) (((a)>(b))?(a):(b)) 
 #define  P_UL 500

@@ -59,7 +59,7 @@
 #ifndef UNIVARIATE_DENSITY_DERIVATIVE_H
 #define UNIVARIATE_DENSITY_DERIVATIVE_H
 
-// #include <mex.h>
+#include <mex.h>
 
 
 class UnivariateDensityDerivative{
@@ -117,8 +117,8 @@ class UnivariateDensityDerivative{
 		
 		//MATLAB applications should always call mxMalloc rather than malloc to allocate memory
 
-		//void *operator new[] (size_t s){ return mxMalloc(s);}
-	    //  void operator delete[] (void* mem){ mxFree(mem);}
+		void *operator new[] (size_t s){ return mxMalloc(s);}
+	      void operator delete[] (void* mem){ mxFree(mem);}
 
 		int factorial(int n);
 		void choose_parameters();
