@@ -35,18 +35,22 @@ eps = 10 ** -2
 dist = random.gauss
 uni = random.uniform
 N = 6000
-X = [0.75*dist(0.3, 0.2) + 0.25*uni(-0.3, 0.2) for _ in range(6000)]
+X = sorted([0.75*dist(0.3, 0.2) + 0.25*uni(-0.3, 0.2) for _ in range(N)])
+Y = list(np.linspace(-5, 5, N))
 
 #X = inflow
 N = len(X)
 print("x created")
 
 
-shift = min(X)
+shift, yshift = min(X), min(Y)
 X_shifted = [x - shift for x in X]
+Y_shifted = [y - yshift for y in Y]
 
 scale = 1 / max(X_shifted)
+yscale = 1 / max(Y_shifted)
 X_shifted_scale = [x * scale for x in X_shifted]
+Y_shifted_scale = [y * yscale for y in Y_shifted]
 
 sigma = stat.stdev(X_shifted_scale)
 
@@ -72,6 +76,14 @@ constant2 = (-6 * math.sqrt(2) * phi4 / phi6) ** (1 / 7)
 
 h_initial = constant1 * phi4 ** (-1 / 5)
 
+print(h_initial)
+x_sort = sorted(X)
+kernel = gk(x_sort, bw_method='silverman')
+points = np.linspace(min(x_sort), max(x_sort), 1000)
+fit = kernel(points)
+print(kernel.factor)
+
+
 h = ls(
     fast_h_fun,
     h_initial,
@@ -86,14 +98,15 @@ h = float(h.x) / scale
 
 print(h)
 
-x_sort = sorted(X)
-kernel = gk(x_sort, bw_method='silverman')
-points = np.linspace(min(x_sort), max(x_sort), 1000)
-fit = kernel(points)
+kernel2 = gk(x_sort, bw_method=h)
+points2 = np.linspace(min(x_sort), max(x_sort), 1000)
+fit2 = kernel2(points2)
 
 plt.plot(points, fit, 'k')
+plt.plot(points2, fit2, 'g')
 
-D0 = FUDD(N, N, x_sort, x_sort, h, 0, eps)
+D0 = FUDD(N, N, X_shifted_scale, X_shifted_scale, kernel.factor, 0, eps)
 D0.evaluate()
+y = [y / scale + shift for y in D0.pD]
 plt.plot(x_sort, D0.pD, 'r')
 plt.show()
