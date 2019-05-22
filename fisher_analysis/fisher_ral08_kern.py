@@ -1,15 +1,17 @@
 import math
-import random
 from statistics import stdev, variance
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import least_squares as ls
 
-from brazil_percent import ral as inflow
+from brazil_percent import ral08 as w
 from fast_deriv import FastUnivariateDensityDerivative as FUDD
+from res_workflow import size_of_state, fisher
 
 # from FastUnivariateDensityDerivative import UnivariateDensityDerivative as FUDD
+# from FastUnivariateDensityDerivative_bak import UnivariateDensityDerivative as FUDD
 
 # N - number of source points
 # X - 1 x N matrix of N source points
@@ -71,49 +73,59 @@ def find_opt_h(x_list, eps):
 
 def fim(x_list, h, kappa2):
     return 1 / (variance(x_list) + h ** 2 * kappa2)
+def sinu(alpha, beta, t):
+    return (alpha + beta*t) * math.sin(2*math.pi*t)
+def convert_to_list_of_list(lis):
+    return [[i] for i in lis]
+def give_what_i_need(lis):
+    return [i[-1] for i in lis], [i[-2] for i in lis]
 
+start = time.time()
 
 eps = 10 ** -6
-N = 2000
-dN = 100
-dist = random.gauss
+N = len(w)
+dN = 120
+over = 1
 
 
-def get_a(t):
-    assert t >= 0
-    if t < 200:
-        a = 0.02
-    elif 200 <= t < 210:
-        a = 0.02 + ((t - 200) / 10) * 0.06
-    elif 210 <= t < 500:
-        a = 0.08
-    elif 500 <= t < 1800:
-        a = 0.08 + ((t - 500) / 1300) * 0.06
-    else:
-        a = 0.14
-    return a
+calculated_h = find_opt_h(w, eps)
+calc_fimk = [fim(w[i : i + dN], calculated_h, 1) for i in range(0, N - dN, over)]
+calc_fimd = fisher(convert_to_list_of_list(w), range(N), dN, over, size_of_state(w, dN), "sim_data")
 
+end = time.time()
+print(f'Total time (s): {end - start}')
 
-b = 0.58
-p = 0.99
+fig, ax1 = plt.subplots(figsize=(17, 9))
 
-z = [0.0] * (N + 1)
-
-x = [0] * (N + 1)
-for i in range(N):
-    z[i + 1] = (p * z[i] + dist(0, math.sqrt(0.0002)))
-    x[i + 1] = ( (get_a(i) * math.exp(z[i])) - (b * x[i]) + ( (x[i] ** 2) / (1 + (x[i] ** 2) )))
-print("x created")
-
-
-calculated_h = find_opt_h(x, eps)
-calc_fim = [fim(x[i : i + dN], calculated_h, 1) for i in range(0, N - dN, 50)]
-
-fig, ax1 = plt.subplots()
-
-ax1.plot(range(dN, N, 50), calc_fim, "o")
+lns1 = ax1.plot(range(dN, N, over), calc_fimk, "b:.", label="kernel FI")
+ax1.set_xlabel("Time")
+ax1.set_ylabel("Fisher Info")
+ax1.set_title("Kernel Method")
 
 ax2 = ax1.twinx()
-ax2.plot(x)
+lns2 = ax2.plot(w, "k", label="x(t)")
+ax2.set_ylabel("x(t)")
+lns = lns1 + lns2
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs)
+plt.savefig(f"PICS/ral08_fik_{dN}_{over}.png")
+plt.close("all")  # remove plot from memory
 
-plt.show()
+
+
+fig, ax1 = plt.subplots(figsize=(17, 9))
+
+x1, y1 = give_what_i_need(calc_fimd)
+lns1 = ax1.plot(x1, y1, "b:.", label="discrete FI")
+ax1.set_xlabel("Time")
+ax1.set_ylabel("Fisher Info")
+ax1.set_title("Discrete Method")
+
+ax2 = ax1.twinx()
+lns2 = ax2.plot(w, "k", label="x(t)")
+ax2.set_ylabel("x(t)")
+lns = lns1 + lns2
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs)
+plt.savefig(f"PICS/ral08_fid_{dN}_{over}.png")
+plt.close("all")  # remove plot from memory

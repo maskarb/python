@@ -1,0 +1,1 @@
+g++ -c -fPIC fast_deriv.cpp -o fast_deriv.o; g++ -shared -Wl,-soname,fast_deriv.so -o fast_deriv.so fast_deriv.o -L/usr/lib/python3.7/config-3.7m-x86_64-linux-gnu -L/home/maskarb/anaconda3/lib -lpython3.7 -lboost_python37

@@ -1,14 +1,16 @@
 import math
-import random
 from statistics import stdev, variance
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import least_squares as ls
 
-from brazil_percent import ral as inflow
+from brazil_percent import ral02 as w
 from fast_deriv import FastUnivariateDensityDerivative as FUDD
+from res_workflow import size_of_state, fisher
 
+# from FastUnivariateDensityDerivative import UnivariateDensityDerivative as FUDD
 # from FastUnivariateDensityDerivative_bak import UnivariateDensityDerivative as FUDD
 
 # N - number of source points
@@ -71,20 +73,58 @@ def find_opt_h(x_list, eps):
 
 def fim(x_list, h, kappa2):
     return 1 / (variance(x_list) + h ** 2 * kappa2)
+def sinu(alpha, beta, t):
+    return (alpha + beta*t) * math.sin(2*math.pi*t)
+def convert_to_list_of_list(lis):
+    return [[i] for i in lis]
+def give_what_i_need(lis):
+    return [i[-1] for i in lis], [i[-2] for i in lis]
 
+start = time.time()
 
-dist = random.gauss
 eps = 10 ** -6
-N = 1000
+N = len(w)
+dN = 42
+over = 1
 
-s = [i / 10 for i in range(1, 50)]
-theoretical = [1 / i ** 2 for i in s]
 
-X = [[dist(0, i) for _ in range(N)] for i in s]
-print("x created")
-calculated_h = [find_opt_h(x, eps) for x in X]
-calc_fim = [fim(x, calculated_h[i], 1) for i, x in enumerate(X)]
+calculated_h = find_opt_h(w, eps)
+calc_fimk = [fim(w[i : i + dN], calculated_h, 1) for i in range(0, N - dN, over)]
+calc_fimd = fisher(convert_to_list_of_list(w), range(N), dN, over, size_of_state(w, dN), "sim_data")
 
-plt.semilogy(theoretical)
-plt.semilogy(calc_fim, "o")
+end = time.time()
+print(f'Total time (s): {end - start}')
+
+fig, ax1 = plt.subplots()
+
+lns1 = ax1.plot(range(dN, N, over), calc_fimk, "b:.", label="kernel FI")
+ax1.set_xlabel("Time")
+ax1.set_ylabel("Fisher Info")
+ax1.set_title("Kernel Method")
+
+ax2 = ax1.twinx()
+lns2 = ax2.plot(w, "k", label="x(t)")
+ax2.set_ylabel("x(t)")
+lns = lns1 + lns2
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs)
+
+plt.show()
+
+
+fig, ax1 = plt.subplots()
+
+x1, y1 = give_what_i_need(calc_fimd)
+lns1 = ax1.plot(x1, y1, "b:.", label="discrete FI")
+ax1.set_xlabel("Time")
+ax1.set_ylabel("Fisher Info")
+ax1.set_title("Discrete Method")
+
+ax2 = ax1.twinx()
+lns2 = ax2.plot(w, "k", label="x(t)")
+ax2.set_ylabel("x(t)")
+lns = lns1 + lns2
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs)
+
 plt.show()
