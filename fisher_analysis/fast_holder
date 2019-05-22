@@ -1,0 +1,10 @@
+#include <boost/python.hpp>
+using namespace boost::python;
+
+BOOST_PYTHON_MODULE(fast_deriv)
+{
+    class_<FastUnivariateDensityDerivative>("FastUnivariateDensityDerivative", init<int, int, double*, double*, double, int, double, double*>())
+        .def("evaluate", & FastUnivariateDensityDerivative::Evaluate)
+    ;
+
+}

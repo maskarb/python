@@ -1,0 +1,1 @@
+PYTHON_ADD_MODULE(fast_deriv fast_deriv.cpp)

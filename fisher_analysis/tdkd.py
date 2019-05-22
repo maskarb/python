@@ -8,14 +8,14 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import LSTM
+from tensorflow.compat.v1.keras.layers import CuDNNLSTM
 
 df = pd.read_csv("falls1.csv")
 
 df.drop(['NORMAL-LEVEL', 'AF', 'CHANGE-ACRE-FEET', 'STORED', 'DRAWDOWN', 'OUTFLOW', 'SUPPLY', 'INFLOW'], axis=1, inplace=True)
 df['DATE'] = pd.to_datetime(df['DATE'])
 df = df.set_index(['DATE'], drop=True)
-df.head(10)
+print(df.head(10))
 
 plt.figure(figsize=(10, 6))
 df['RES-LEVEL'].plot()
@@ -40,19 +40,7 @@ y_train = train_sc[1:]
 X_test = test_sc[:-1]
 y_test = test_sc[1:]
 
-nn_model = Sequential()
-nn_model.add(Dense(12, input_dim=1, activation='relu'))
-nn_model.add(Dense(1))
-nn_model.compile(loss='mean_squared_error', optimizer='adam')
-early_stop = EarlyStopping(monitor='loss', patience=2, verbose=1)
-history = nn_model.fit(X_train, y_train, epochs=100, batch_size=1, verbose=1, callbacks=[early_stop], shuffle=False)
-
-y_pred_test_nn = nn_model.predict(X_test)
-y_train_pred_nn = nn_model.predict(X_train)
-print("The R2 score on the Train set is:\t{:0.3f}".format(r2_score(y_train, y_train_pred_nn)))
-print("The R2 score on the Test set is:\t{:0.3f}".format(r2_score(y_test, y_pred_test_nn)))
-
-
+#---------------------------------------------------------------------
 #---------------------------------------------------------------------
 train_sc_df = pd.DataFrame(train_sc, columns=['Y'], index=train.index)
 test_sc_df = pd.DataFrame(test_sc, columns=['Y'], index=test.index)
@@ -80,7 +68,7 @@ print('Train shape: ', X_train_lmse.shape)
 print('Test shape: ', X_test_lmse.shape)
 
 lstm_model = Sequential()
-lstm_model.add(LSTM(7, input_shape=(1, X_train_lmse.shape[1]), activation='relu', kernel_initializer='lecun_uniform', return_sequences=False))
+lstm_model.add(CuDNNLSTM(7, input_shape=(1, X_train_lmse.shape[1]), kernel_initializer='lecun_uniform', return_sequences=False))
 lstm_model.add(Dense(1))
 lstm_model.compile(loss='mean_squared_error', optimizer='adam')
 early_stop = EarlyStopping(monitor='loss', patience=2, verbose=1)
@@ -91,6 +79,21 @@ y_train_pred_lstm = lstm_model.predict(X_train_lmse)
 print("The R2 score on the Train set is:\t{:0.3f}".format(r2_score(y_train, y_train_pred_lstm)))
 print("The R2 score on the Test set is:\t{:0.3f}".format(r2_score(y_test, y_pred_test_lstm)))
 
+#---------------------------------------------------------------------
+nn_model = Sequential()
+nn_model.add(Dense(12, input_dim=1, activation='relu'))
+nn_model.add(Dense(1))
+nn_model.compile(loss='mean_squared_error', optimizer='adam')
+early_stop = EarlyStopping(monitor='loss', patience=2, verbose=1)
+history = nn_model.fit(X_train, y_train, epochs=100, batch_size=1, verbose=1, callbacks=[early_stop], shuffle=False)
+
+y_pred_test_nn = nn_model.predict(X_test)
+y_train_pred_nn = nn_model.predict(X_train)
+print("The R2 score on the Train set is:\t{:0.3f}".format(r2_score(y_train, y_train_pred_nn)))
+print("The R2 score on the Test set is:\t{:0.3f}".format(r2_score(y_test, y_pred_test_nn)))
+
+
+#---------------------------------------------------------------------
 nn_test_mse = nn_model.evaluate(X_test, y_test, batch_size=1)
 lstm_test_mse = lstm_model.evaluate(X_test_lmse, y_test, batch_size=1)
 print('NN: %f'%nn_test_mse)
