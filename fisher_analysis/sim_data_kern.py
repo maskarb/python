@@ -78,34 +78,35 @@ N = 2000
 dN = 100
 dist = random.gauss
 
-a = [None] * N
-for i in range(N):
-    if i < 200:
-        a[i] = 0.02
-    elif i < 210:
-        a[i] = 0.02 + ((i - 200) / 10) * 0.06
-    elif i < 500:
-        a[i] = 0.08
-    elif i < 1800:
-        a[i] = 0.08 + ((i - 500) / 1300) * 0.06
-        print(a[i])
+
+def get_a(t):
+    assert t >= 0
+    if t < 200:
+        a = 0.02
+    elif 200 <= t < 210:
+        a = 0.02 + ((t - 200) / 10) * 0.06
+    elif 210 <= t < 500:
+        a = 0.08
+    elif 500 <= t < 1800:
+        a = 0.08 + ((t - 500) / 1300) * 0.06
     else:
-        a[i] = 0.14
-    
+        a = 0.14
+    return a
+
 
 b = 0.58
 p = 0.99
 
-z = [1]
+z = [0.0] * (N + 1)
 
-x = [0]
+x = [0] * (N + 1)
 for i in range(N):
-    z.append(p * z[i] + dist(0, 0.0002))
-    x.append(a[i] * math.exp(1) - b * x[i] + (x[i] ** 2 / (1 + x[i] ** 2)))
+    z[i + 1] = (p * z[i] + dist(0, math.sqrt(0.0002)))
+    x[i + 1] = ( (get_a(i) * math.exp(z[i])) - (b * x[i]) + ( (x[i] ** 2) / (1 + (x[i] ** 2) )))
 print("x created")
 
 
-calculated_h = find_opt_h(a, eps)
+calculated_h = find_opt_h(x, eps)
 calc_fim = [fim(x[i : i + dN], calculated_h, 1) for i in range(0, N - dN, 50)]
 
 fig, ax1 = plt.subplots()
