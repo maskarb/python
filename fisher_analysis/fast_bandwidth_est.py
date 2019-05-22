@@ -1,25 +1,19 @@
-from ctypes import CDLL
-import itertools
 import math
 import random
-import statistics as stat
-
-import numpy as np
-from scipy.optimize import least_squares as ls
-from scipy.stats import gaussian_kde as gk
+from statistics import stdev, variance
 
 import matplotlib.pyplot as plt
-
-from fast_deriv import FastUnivariateDensityDerivative as FUDD
+import numpy as np
+from scipy.optimize import least_squares as ls
 
 from brazil_percent import ral as inflow
+from fast_deriv import FastUnivariateDensityDerivative as FUDD
 
-random.seed(100)
+# from FastUnivariateDensityDerivative import UnivariateDensityDerivative as FUDD
 
 # N - number of source points
 # X - 1 x N matrix of N source points
 # eps - accuracy parameter
-
 # h - optimal bandwidth estimated
 
 
@@ -31,7 +25,6 @@ def fast_h_fun(h, N, X, c1, c2, eps):
     return h - c1 * phi4 ** (-1 / 5)
 
 
-
 def find_opt_h(x_list, eps):
     N = len(x_list)
     X = x_list
@@ -41,7 +34,7 @@ def find_opt_h(x_list, eps):
     scale = 1 / max(X_shifted)
     X_shifted_scale = [x * scale for x in X_shifted]
 
-    sigma = stat.stdev(X_shifted_scale)
+    sigma = stdev(X_shifted_scale)
 
     phi6 = (-15 / (16 * math.sqrt(math.pi))) * math.pow(sigma, -7)
     phi8 = (105 / (32 * math.sqrt(math.pi))) * math.pow(sigma, -9)
@@ -52,7 +45,6 @@ def find_opt_h(x_list, eps):
     D4 = FUDD(N, N, X_shifted_scale, X_shifted_scale, g1, 4, eps)
     D4.evaluate()
     phi4 = sum(D4.pD) / (N - 1)
-
 
     D6 = FUDD(N, N, X_shifted_scale, X_shifted_scale, g2, 6, eps)
     D6.evaluate()
@@ -76,20 +68,17 @@ def find_opt_h(x_list, eps):
     h = float(h.x) / scale
     return h
 
-def fim(x_list, h, kappa2):
-    return 1 / (stat.variance(x_list) + h ** 2 * kappa2)
 
-eps = 10 ** -2
+def fim(x_list, h, kappa2):
+    return 1 / (variance(x_list) + h ** 2 * kappa2)
+
 
 dist = random.gauss
-N = 6000
+eps = 10 ** -6
+N = 1000
 
-
-
-
-
-s = [i/10 for i in range(1, 50)]
-theoretical = [1/i ** 2 for i in s]
+s = [i / 10 for i in range(1, 50)]
+theoretical = [1 / i ** 2 for i in s]
 
 X = [[dist(0, i) for _ in range(N)] for i in s]
 print("x created")
@@ -97,5 +86,5 @@ calculated_h = [find_opt_h(x, eps) for x in X]
 calc_fim = [fim(x, calculated_h[i], 1) for i, x in enumerate(X)]
 
 plt.semilogy(theoretical)
-plt.semilogy(calc_fim, 'o')
+plt.semilogy(calc_fim, "o")
 plt.show()
