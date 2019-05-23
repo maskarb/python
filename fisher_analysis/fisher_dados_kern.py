@@ -84,8 +84,8 @@ start = time.time()
 
 eps = 10 ** -6
 N = len(w)
-dN = 36
-over = 2
+dN = 28
+over = 1
 
 
 calculated_h = find_opt_h(w, eps)
@@ -95,7 +95,7 @@ calc_fimd = fisher(convert_to_list_of_list(w), range(N), dN, over, size_of_state
 end = time.time()
 print(f'Total time (s): {end - start}')
 
-fig, ax1 = plt.subplots()
+fig, ax1 = plt.subplots(figsize=(17, 9))
 
 lns1 = ax1.plot(range(dN, N, over), calc_fimk, "b:.", label="kernel FI")
 ax1.set_xlabel("Time")
@@ -108,11 +108,11 @@ ax2.set_ylabel("x(t)")
 lns = lns1 + lns2
 labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs)
+plt.savefig(f"PICS/dados_fik_{dN}_{over}.png")
+plt.close("all")  # remove plot from memory
 
-plt.show()
 
-
-fig, ax1 = plt.subplots()
+fig, ax1 = plt.subplots(figsize=(17, 9))
 
 x1, y1 = give_what_i_need(calc_fimd)
 lns1 = ax1.plot(x1, y1, "b:.", label="discrete FI")
@@ -126,5 +126,5 @@ ax2.set_ylabel("x(t)")
 lns = lns1 + lns2
 labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs)
-
-plt.show()
+plt.savefig(f"PICS/dados_fid_{dN}_{over}.png")
+plt.close("all")  # remove plot from memory

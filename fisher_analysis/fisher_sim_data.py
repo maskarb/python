@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import least_squares as ls
 
-from brazil_percent import ral as inflow
+# from brazil_percent import ral as inflow
 from fast_deriv import FastUnivariateDensityDerivative as FUDD
 from res_workflow import size_of_state, fisher
 
@@ -85,8 +85,8 @@ start = time.time()
 random.seed(100)
 eps = 10 ** -6
 N = 3000
-dN = 150
-over = 1
+dN = 100
+over = 50
 dist = random.gauss
 
 alph = 1
@@ -120,7 +120,7 @@ x = [0] * (N + 1)
 m = [0] * (N + 1)
 
 for i in range(N):
-    z[i + 1] = (dist(0, math.sqrt(0.0002)))
+    z[i + 1] = (p * z[i] + dist(0, math.sqrt(0.0002)))
     x[i + 1] = (x[i] + (get_a(i) * math.exp(0)) - (b * x[i]) + ( (x[i] ** 2) / (1 + (x[i] ** 2) )))
     m[i + 1] = (m[i] + (get_a(i) * math.exp(z[i])) - (b * m[i]) + ( (m[i] ** 2) / (1 + (m[i] ** 2) )))
 print("x created")
@@ -134,7 +134,7 @@ calc_fimd = fisher(convert_to_list_of_list(w), range(N), dN, over, size_of_state
 end = time.time()
 print(f'Total time (s): {end - start}')
 
-fig, ax1 = plt.subplots()
+fig, ax1 = plt.subplots(figsize=(17, 9))
 
 lns1 = ax1.plot(range(dN, N, over), calc_fimk, "b:.", label="kernel FI")
 ax1.set_xlabel("Time")
@@ -148,10 +148,11 @@ lns = lns1 + lns2
 labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc='upper center')
 
-plt.show()
+plt.savefig(f"PICS/FI_KERNEL_bignoise_{dN}_{over}.png")
+plt.close("all")  # remove plot from memory
 
 
-fig, ax1 = plt.subplots()
+fig, ax1 = plt.subplots(figsize=(17, 9))
 
 x1, y1 = give_what_i_need(calc_fimd)
 lns1 = ax1.plot(x1, y1, "b:.", label="discrete FI")
@@ -166,4 +167,5 @@ lns = lns1 + lns2
 labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc='upper center')
 
-plt.show()
+plt.savefig(f"PICS/FI_DISCRETE_bignoise_{dN}_{over}.png")
+plt.close("all")  # remove plot from memory
