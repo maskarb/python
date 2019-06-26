@@ -63,7 +63,12 @@ def find_opt_h(x_list, eps):
     )
 
     h = float(h.x) / scale
-    return h
+    print(h)
+
+    sortX = sorted(X_shifted_scale)
+    D0 = FUDD(N, N, sortX, sortX, h, 0, eps)
+    D0.evaluate()
+    return h, D0.pD
 
 
 def fik(x_list, h, kappa2):
