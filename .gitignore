@@ -17,3 +17,4 @@ res-*/
 fisher_analysis/res-*/
 */.vscode/
 */__pycache__/
+*.mypy_cache/
