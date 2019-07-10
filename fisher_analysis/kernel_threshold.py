@@ -50,11 +50,16 @@ def bin_the_data(bin_range, df, variable):
 
 def kernel_fisher(dN, N, over, df, variable):
     # k = get_uni_kde(df[variable])
+    x = range(0, 300000, 100)
     fi = []
     for i in range(0, N - dN, over):
-        k = get_uni_kde(df[variable][i : i + dN])
-        sorted_w = list(df[variable][i : i + dN].sort_values(axis=0))
+        temp = df[variable][i : i + dN]
+        k = get_uni_kde(temp)
+        sorted_w = list(temp.sort_values(axis=0))
         vals = get_kde_probs(k, sorted_w)
+        if i % 100 == 0:
+            plt.plot(k.evaluate(x))
+            plt.show()
         fi.append(sum([(vals[x + 1] - vals[x]) ** 2 / vals[x] for x in range(dN)]))
     return fi
 
@@ -65,8 +70,11 @@ def discrete_fisher(number_bins, dN, N, over, df, variable):
     dis_fi = []
     for i in range(0, N - dN, over):
         temp = df.iloc[i : i + dN, :][variable]
-        hist = np.histogram(temp, bins=number_bins)
+        hist = np.histogram(temp, bins=number_bins, density=False)
         counts = list(hist[0] / dN) + [0]
+        if i % 100 == 0:
+            plt.hist(temp, bins=number_bins)
+            plt.show()
         # print(f"{i:3d} : {counts}")
         dis_fi.append(sum([(counts[x + 1] - counts[x]) ** 2 / counts[x] for x in range(number_bins) if counts[x] != 0]))
     return dis_fi
@@ -83,7 +91,6 @@ def plot_kern_and_discrete(fig_name, number_bins, dN, N, over, x, kern, disc):
 
     ax2 = ax1.twinx()
     lns2, = ax2.plot(range(dN, N, over), kern, "r--", label="Kernel FI")
-    #ax2.axhline(horizontal, color="k")
     ax2.set_ylabel("Fisher Info - Kernel")
 
     ax3 = ax1.twinx()
@@ -92,8 +99,6 @@ def plot_kern_and_discrete(fig_name, number_bins, dN, N, over, x, kern, disc):
     ax3.spines["right"].set_visible(True)
     lns3, = ax3.plot(range(dN, N, over), disc, "g--", label="Discrete FI")
     ax3.set_ylabel("Fisher Info - Discrete")
-    #lns3, = ax3.plot(x_range, diff, "g--", label=f"Diff{x_range[0]-dN}")
-    #ax3.set_ylabel("Diff")
 
     ax1.yaxis.label.set_color(lns1.get_color())
     ax2.yaxis.label.set_color(lns2.get_color())
@@ -103,8 +108,8 @@ def plot_kern_and_discrete(fig_name, number_bins, dN, N, over, x, kern, disc):
     labs = [l.get_label() for l in lns]
     ax1.legend(lns, labs)
     fig.canvas.set_window_title(f"{fig_name}")
-    plt.savefig(f"PICS/{fig_name}_dN_{dN}_bins_{number_bins}.png")
-    #plt.show()
+    #plt.savefig(f"PICS/{fig_name}_dN_{dN}_bins_{number_bins}.png")
+    plt.show()
     plt.close("all")  # remove plot from memory
 
 
@@ -136,8 +141,8 @@ def plot_kern_and_diff(fig_name, number_bins, dN, N, over, x, kern, x_range, dif
     labs = [l.get_label() for l in lns]
     ax1.legend(lns, labs)
     fig.canvas.set_window_title(f"{fig_name}")
-    plt.savefig(f"PICS/{fig_name}_dN_{dN}_bins_{number_bins}_diff.png")
-    #plt.show()
+    #plt.savefig(f"PICS/{fig_name}_dN_{dN}_bins_{number_bins}_diff.png")
+    plt.show()
     plt.close("all")  # remove plot from memory
 
 def list_csv_files(search_dir, reg_to_match):
@@ -156,9 +161,9 @@ def list_csv_files(search_dir, reg_to_match):
 
 
 def main(dN, number_bins, filename, directory):
-    dN = 50
-    directory = '.'
-    filename = 'cantar2019.csv'
+    # dN = 50
+    # directory = '.'
+    # filename = 'cantar2019.csv'
     # filename = 'res-mgmt-1-s-0.8-0.csv'
     fig_name = filename[:-4]
 
@@ -178,9 +183,8 @@ def main(dN, number_bins, filename, directory):
     x_range = range(dN+n, N, over)
     diff = np.diff(kern_fi, n=n)
 
-
-    #plot_kern_and_discrete(fig_name, number_bins, dN, N, over, x, kern_fi, disc_fi)
-    plot_kern_and_diff(fig_name, number_bins, dN, N, over, x, kern_fi, x_range, diff)
+    plot_kern_and_discrete(fig_name, number_bins, dN, N, over, x, kern_fi, disc_fi)
+    #plot_kern_and_diff(fig_name, number_bins, dN, N, over, x, kern_fi, x_range, diff)
 
 
 if __name__ == "__main__":
@@ -190,7 +194,7 @@ if __name__ == "__main__":
     file_list = [file_list[0]]
 
     dN_range = [100]
-    bins_range = [5]
+    bins_range = [50]
     for filename in file_list:
         for dN in dN_range:
             for number_bins in bins_range:
