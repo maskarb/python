@@ -18,3 +18,4 @@ fisher_analysis/res-*/
 */.vscode/
 */__pycache__/
 *.mypy_cache/
+!fisher_analysis/cantar2019.csv
