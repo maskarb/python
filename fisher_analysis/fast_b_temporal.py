@@ -4,11 +4,11 @@ from statistics import mean, stdev, variance
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.integrate import simps, romb
+from scipy.integrate import romb, simps
 from scipy.misc import derivative
 from scipy.optimize import least_squares as ls
 from scipy.stats import gaussian_kde as kde
-from sklearn.preprocessing import MinMaxScaler
+
 
 # from brazil_percent import ral as inflow
 from fast_deriv import FastUnivariateDensityDerivative as FUDD
@@ -21,7 +21,6 @@ from fast_deriv import FastUnivariateDensityDerivative as FUDD
 # h - optimal bandwidth estimated
 
 INF = float("inf")
-min_max = MinMaxScaler()
 
 
 def fast_h_fun(h, N, X, c1, c2, eps):
@@ -84,20 +83,6 @@ def get_uni_kde(data, bw_method="silverman"):
     return kde(data, bw_method=bw_method)
 
 
-def get_kde_probs(kde, datapoints):
-    # datapoints.append(INF)
-    return [kde.integrate_box_1d(-INF, d) for d in datapoints]
-
-
-def a_different_kern(x_list, i):
-    minim, maxim = get_min_max(x_list)
-    x = list(np.linspace(minim / 0.5, maxim / 0.5, 1000))
-    k = get_uni_kde(x_list)
-    # sorted_w = sorted(x_list)
-    vals = get_kde_probs(k, x)
-    return sum([(vals[x + 1] - vals[x]) ** 2 / vals[x] for x in range(len(x) - 1)])
-
-
 def _ls_get_value(x, k, p):
     return p - k.integrate_box_1d(-np.inf, x)
 
@@ -115,6 +100,31 @@ def kernel_fi(x_list, eps):
     p_prime2 = np.gradient(probs, x) ** 2
     return romb(p_prime2 / probs)
 
+def temporal_kern(x, dN, over):
+    N = len(x)
+    fi = []
+    for i in range(0, N - dN, over):
+        window = x[i : i + dN]
+        fi.append(kernel_fi(window, eps))
+    return fi
+
+def temporal_amp_disc(x, dN, over, f, k):
+    N = len(x)
+    sos = size_of_state(k, x, dN)
+    fi = []
+    for i in range(0, N - dN, over):
+        window = x[i : i + dN]
+        fi.append(f(window, sos))
+    return fi
+
+
+def temporal_prob_disc(x, dN, over, f, b):
+    N = len(x)
+    fi = []
+    for i in range(0, N - dN, over):
+        window = x[i : i + dN]
+        fi.append(f(window, b))
+    return fi
 
 
 def discrete_fisher(x_list, number_bins):
@@ -176,9 +186,9 @@ def amp_sos_fisher(x_list, k):
         ]
     )
 
-def prob_sos_fisher(x_list):
-    sos = np.std(x_list, ddof=1) * 2
-    bins = make_bin_edges(sos, 2, x_list[0], min(x_list), max(x_list))
+def prob_sos_fisher(x_list, k):
+    sos = np.std(x_list, ddof=1) * k
+    bins = make_bin_edges(sos, k, x_list[0], min(x_list), max(x_list))
     hist = np.histogram(x_list, bins=bins, density=False)
     counts = [0] + list(hist[0] / len(x_list)) + [0]
     return sum(
@@ -189,62 +199,48 @@ def prob_sos_fisher(x_list):
         ]
     )
 
-#dist = np.random.normal
-#eps = 10 ** -9
-#N = [100]
-#
-#s = [i / 10 for i in range(100, 5000, 100)]
-#theoretical = [1 / i ** 2 for i in s]
-#
-#xes = []
+
+dist = np.random.normal
+eps = 10 ** -9
+
+s = [i / 10 for i in range(100, 5000, 100)]
+theoretical = [1 / i ** 2 for i in s]
+
+xes = []
+for _ in range(3):
+    for _ in range(100):
+        xes.append(dist(0, 20))
+    for _ in range(100):
+        xes.append(dist(200, 20))
+
+
+N = len(xes)
+dN = 50
+over = 1
+
 #for n in N:
 #    xes.append([[[dist(0, i) for _ in range(n)] for _ in range(30)] for i in s])
-#
-##xes = [[dist(0, i) for _ in range(30)] for i in s]
-##V = [[dist(0, i) for _ in range(1000)] for i in s]
-#
-#print("x created")
-## calculated_h = [find_opt_h(x, eps) for x in X]
-## print("h's calculated")
-#calc_fims = []
-##for x in xes:
-#    # calc_fims.append([[kernel_fi(x, i, eps) for i, x in enumerate(s)] for s in x])
-#    # calc_fims.append([[amp_fisher(x, 5) for i, x in enumerate(s)] for s in x])
-#    # calc_fims.append([[amp_sos_fisher(x) for i, x in enumerate(s)] for s in x])
-#
-#bins = range(3, 9)
-#
-#for b in bins:
-#    for x in xes:
-#        calc_fims.append([[discrete_fisher(x, b) for x in s] for s in x])
-#
-#
-##calc_fim3 = [[kernel_again(x, i, eps) for i, x in enumerate(s)] for s in U]
-#
-##calc_fim1 = [discrete_fisher(x, 10) for i, x in enumerate(S)]
-##calc_fim2 = [discrete_fisher(x, 40) for i, x in enumerate(T)]
-##calc_fim3 = [discrete_fisher(x, 40) for i, x in enumerate(U)]
-##calc_fim4 = [discrete_fisher(x, 40) for i, x in enumerate(V)]
-##calc_fim5 = [discrete_fisher(x, 10000) for i, x in enumerate(W)]
-#
-#
-#x1 = [[mean(x) for x in lis] for lis in calc_fims]
-#err = [[stdev(x) for x in lis] for lis in calc_fims]
-#
-#
-#
-#fig, ax1 = plt.subplots(figsize=(5, 4))
+
+#xes = [[dist(0, i) for _ in range(30)] for i in s]
+#V = [[dist(0, i) for _ in range(1000)] for i in s]
+
+print("x created")
+# calculated_h = [find_opt_h(x, eps) for x in X]
+# print("h's calculated")
+calc_fims = temporal_kern(xes, dN, over)
+
+fig, ax1 = plt.subplots(figsize=(5, 4))
 #ax1.set_yscale("log", nonposy='mask')
-#ax1.plot(s, theoretical, "k")
-#for i, x in enumerate(x1):
-#    plt.errorbar(s, x, yerr=err[i], label=f"{bins[i]} bins")
-##plt.semilogy(s, calc_fim2, "-o", label="N = 40")
-##plt.semilogy(s, calc_fim3, "-o", label="N = 100")
-##plt.semilogy(s, calc_fim4, "-o", label="N = 1000")
-##plt.semilogy(s, calc_fim, "-o", label="N = 100")
-##plt.title("Amplitude Discrete FI method - $\Delta s = k\sigma$")
-#plt.title("Probability Discrete FI method - Various Bin Count")
-#plt.legend()
-#plt.xlabel("$\sigma$")
-#plt.ylabel("I")
-#plt.show()
+ax1.plot(xes, "k")
+ax2 = ax1.twinx()
+ax2.plot(list(range(dN, N, over)), calc_fims)
+#plt.semilogy(s, calc_fim2, "-o", label="N = 40")
+#plt.semilogy(s, calc_fim3, "-o", label="N = 100")
+#plt.semilogy(s, calc_fim4, "-o", label="N = 1000")
+#plt.semilogy(s, calc_fim, "-o", label="N = 100")
+#plt.title("Amplitude Discrete FI method - $\Delta s = k\sigma$")
+plt.title("Kernel FI method - Temporal Series")
+
+plt.xlabel("Time (t)")
+plt.ylabel("I")
+plt.show()

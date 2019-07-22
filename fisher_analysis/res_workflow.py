@@ -216,7 +216,7 @@ def get_variable_index(vars: list, headers: list):
 
 
 def main():
-    file_no_ext = 'fisher_analysis/res-s-0.4-0'
+    file_no_ext = 'res-mgmt-1-s-0.4-0'
     filename = file_no_ext.split('-')
     f_name = file_no_ext + '.csv'
 
@@ -226,11 +226,11 @@ def main():
     data_num, Time = [], []
 
     headers, Data = read_csv_headers(f_name)
-    var_list = ['storage', ]
+    var_list = ['storage', 'deficit']
     index_list = get_variable_index(var_list, headers)
 
     for i, row in enumerate(Data):
-        data_num.append([literal_eval(row[i])/1000 for i in index_list])
+        data_num.append([literal_eval(row[i]) for i in index_list])
         Time.append(i)
 
 #    time_list = ['index']

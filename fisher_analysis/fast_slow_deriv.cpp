@@ -26,7 +26,6 @@
 // Date    : September 17, 2005
 //-------------------------------------------------------------
 
-#include "UnivariateDensityDerivative.h"
 #include <math.h>
 #include <boost/python.hpp>
 namespace python = boost::python;
@@ -68,25 +67,67 @@ class UnivariateDensityDerivative {
 	void evaluate();
 	double hermite(double x, int r);
 
-UnivariateDensityDerivative::UnivariateDensityDerivative(int NSources,
+	private:
+		int N; //number of sources.
+		int M; //number of targets.
+		double* px; //pointer to sources, (N).
+		double* py; //pointer to the targets, (M).
+		double h; //the source bandwidth.
+		int r; //the rth density derivative.
+
+		double* pD; //pointer to the evaluated Density Derivative, (M).
+
+		double* converter_double(python::list lis);
+		python::list converter_list(double* lis);
+
+		double two_h_square;
+		double pi;
+		double q;
+};
+
+UnivariateDensityDerivative::UnivariateDensityDerivative(
+            int NSources,
 			int MTargets,
-			double *pSources,
-			double *pTargets,
+            python::list pSources,
+            python::list pTargets,
 			double Bandwidth,
-		      int Order,
-			double *pDensityDerivative)
+			int Order)
 {	
 
-	N=NSources;
-	M=MTargets;
-	px=pSources;
-	h=Bandwidth;
-	r=Order;
-	py=pTargets;
-	pD=pDensityDerivative;
+	N = NSources;
+	M = MTargets;
+	px = converter_double(pSources);
+	h = Bandwidth;
+	r = Order;
+	py = converter_double(pTargets);
+	pD = new double[N];
+
+	two_h_square=2*h*h;
+	pi=3.14159265358979;
+	q=(pow(-1,r))/(sqrt(2*pi)*N*(pow(h,(r+1))));
 
 }
 
+double* UnivariateDensityDerivative::converter_double(python::list lis)
+{
+    int length = len(lis);
+    double* temp = new double[length];
+    for (int i = 0; i < length; i++)
+    {
+        temp[i] = python::extract<double>(lis[i]);
+    }
+    return temp;
+}
+
+python::list UnivariateDensityDerivative::converter_list(double* lis)
+{
+    python::list temp;
+    for (int i = 0; i < N; i++)
+    {
+        temp.append(lis[i]);
+    }
+    return temp;
+}
 //-------------------------------------------------------------------
 // Destructor.
 //-------------------------------------------------------------------
@@ -100,12 +141,8 @@ UnivariateDensityDerivative::~UnivariateDensityDerivative()
 //-------------------------------------------------------------------
 
 void
-UnivariateDensityDerivative::Evaluate()
+UnivariateDensityDerivative::evaluate()
 {
-	double two_h_square=2*h*h;
-	double pi=3.14159265358979;
-	double q=(pow(-1,r))/(sqrt(2*pi)*N*(pow(h,(r+1))));
-
 	for(int j=0; j<M; j++)
 	{
 		pD[j]=0.0;
@@ -120,6 +157,7 @@ UnivariateDensityDerivative::Evaluate()
 		}
 		pD[j]=pD[j]*q;
 	}
+	pDensityDerivative = converter_list(pD);
 }
 
 //-------------------------------------------------------------------
@@ -141,5 +179,22 @@ UnivariateDensityDerivative::hermite(double x, int r)
 	{
 		return (x*hermite(x,r-1))-((r-1)*hermite(x,r-2));
 	}
+
+}
+
+BOOST_PYTHON_MODULE(fast_slow_deriv)
+{
+    namespace python = boost::python;
+    python::class_<UnivariateDensityDerivative>("UnivariateDensityDerivative", 
+        python::init<int, 
+                     int, 
+                     python::list,
+                     python::list,
+                     double,
+                     int
+                    >())
+        .def("evaluate", &UnivariateDensityDerivative::evaluate)
+        .def_readonly("pD", &UnivariateDensityDerivative::pDensityDerivative)
+    ;
 
 }
