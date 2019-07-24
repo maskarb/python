@@ -1,7 +1,14 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-def size_of_state(data_num, window_size):
+def cast_x_list(lis):
+    return [[i] for i in lis]
+def give_what_i_need(lis):
+    return [x[-1] for x in lis]
+
+
+def size_of_state(data_num, window_size, k):
     d_f = pd.DataFrame(data_num)
     sos = []
     for j in range(len(d_f.columns)):
@@ -14,11 +21,13 @@ def size_of_state(data_num, window_size):
         if not sos_temp:
             sos.append(0)
         else:
-            sos.append(min(sos_temp) * 2)
+            sos.append(min(sos_temp) * k)
     return sos
 
 
-def fisher(data_num, Time, w_size, w_incr, sost, f_name):
+def fisher_univariate(x_list, k, w_size, w_incr):
+    sost = size_of_state(x_list, w_size, k)
+    data_num = cast_x_list(x_list)
     FI_final, k_init = [], []
     for i in range(0, len(data_num), w_incr):
         data_win = data_num[i:i+w_size]
@@ -74,5 +83,32 @@ def fisher(data_num, Time, w_size, w_incr, sost, f_name):
             float(sum(FI_val[min(k_init):len(FI_val)])) /
             len(FI_val[min(k_init):len(FI_val)])
             )
-        FI_final[i].append(Time[(i*w_incr+w_size)-1])
-    return FI_final
+    return give_what_i_need(FI_final)
+
+def main(filename, k, dN, over, eps):
+    df = pd.read_csv(filename)
+    x = list(df['storage'] / 1000)
+    return fisher_univariate(x, k, dN, over), x
+
+if __name__ == "__main__":
+    k = 2
+    dN = 47
+    over = 1
+    eps = 10 ** -9
+    nums = [2, 8]
+
+    fishers = []
+    for i in nums:
+        fishers.append(main(f"for_thesis/res-mgmt-0-s-0.{i}-0.csv", k, dN, over, eps))
+
+    for i, fi in enumerate(fishers):
+        fig, ax1 = plt.subplots(figsize=(6, 3.5))
+        ln1, = ax1.plot(fi[1], color='k', label=f"x = {nums[i]}0%")
+        ax2 = ax1.twinx()
+        ln2 = ax2.plot(range(dN, 1 + len(fi[1]), over), fi[0], color='r', label="Amplitude - Overlapping")
+        ax1.set_ylabel("x(t) / 1000")
+        ax1.set_xlabel("Time (month)")
+        ax2.set_ylabel("Amplitude - Overlapping")
+
+        plt.tight_layout()
+        plt.show()
